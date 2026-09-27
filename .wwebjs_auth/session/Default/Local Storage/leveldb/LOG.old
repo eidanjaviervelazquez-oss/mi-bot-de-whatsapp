@@ -1,0 +1,7 @@
+2026/09/25-19:29:07.328 1d00 Creating DB C:\Users\Ricardo\Desktop\mis projectos python\.wwebjs_auth\session\Default\Local Storage\leveldb since it was missing.
+2026/09/25-19:29:08.173 1d00 Reusing MANIFEST C:\Users\Ricardo\Desktop\mis projectos python\.wwebjs_auth\session\Default\Local Storage\leveldb/MANIFEST-000001
+2026/09/25-19:29:08.184 1d00 Recovering log #3
+2026/09/25-19:29:08.318 1d00 Reusing old log C:\Users\Ricardo\Desktop\mis projectos python\.wwebjs_auth\session\Default\Local Storage\leveldb/000003.log 
+2026/09/26-14:21:59.340 24b4 Level-0 table #5: started
+2026/09/26-14:21:59.358 24b4 Level-0 table #5: 20920 bytes OK
+2026/09/26-14:21:59.364 24b4 Delete type=0 #3

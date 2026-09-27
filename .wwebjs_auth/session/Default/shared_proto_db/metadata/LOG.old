@@ -1,0 +1,4 @@
+2026/09/25-19:29:07.868 2a8c Creating DB C:\Users\Ricardo\Desktop\mis projectos python\.wwebjs_auth\session\Default\shared_proto_db\metadata since it was missing.
+2026/09/25-19:29:07.903 2a8c Reusing MANIFEST C:\Users\Ricardo\Desktop\mis projectos python\.wwebjs_auth\session\Default\shared_proto_db\metadata/MANIFEST-000001
+2026/09/25-19:29:07.906 2a8c Recovering log #3
+2026/09/25-19:29:07.907 2a8c Reusing old log C:\Users\Ricardo\Desktop\mis projectos python\.wwebjs_auth\session\Default\shared_proto_db\metadata/000003.log 

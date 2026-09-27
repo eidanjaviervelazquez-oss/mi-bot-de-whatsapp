@@ -1,0 +1,32 @@
+from scapy.all import ARP, Ether, srp
+
+def escanear_red(ip_rango):
+    print(f"Escaneando la red: {ip_rango}...\n")
+    
+    # Crear paquete Ethernet/ARP
+    arp = ARP(pdst=ip_rango)
+    ether = Ether(dst="ff:ff:ff:ff:ff:ff")
+    paquete = ether/arp
+
+    # Enviar paquete y recibir respuestas
+    resultado = srp(paquete, timeout=2, verbose=0)[0]
+
+    dispositivos = []
+    for elemento in resultado:
+        dispositivos.append({'ip': elemento[1].psrc, 'mac': elemento[1].hwsrc})
+
+    # Mostrar resultados en consola
+    print("Dispositivos encontrados:")
+    print("-----------------------------------------")
+    print("IP\t\t\tDirección MAC")
+    print("-----------------------------------------")
+    for dispositivo in dispositivos:
+        print(f"{dispositivo['ip']}\t\t{dispositivo['mac']}")
+        
+    print("-----------------------------------------")
+    print(f"Total de dispositivos conectados: {len(dispositivos)}")
+
+# Ejecutar escaneo en el rango típico de red doméstica
+if __name__ == "__main__":
+    # Ajusta '192.168.1.1/24' según la puerta de enlace de tu router (ej. 192.168.0.1/24)
+    escanear_red("192.168.1.1/24")

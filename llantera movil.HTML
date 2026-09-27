@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Llantera Móvil 24/7</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #1a1a1a; color: #ffffff; padding: 20px; display: flex; justify-content: center; }
+        .container { max-width: 500px; width: 100%; background: #2b2b2b; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        h1 { color: #ffcc00; text-align: center; margin-bottom: 10px; font-size: 24px; }
+        p.sub { text-align: center; color: #ccc; margin-bottom: 20px; font-size: 14px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #ffcc00; }
+        select, input { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #444; background: #333; color: #fff; font-size: 16px; }
+        .btn-gps { width: 100%; background: #007bff; color: white; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 8px; font-size: 14px; transition: background 0.2s; }
+        .btn-gps:hover { background: #0056b3; }
+        .btn-whatsapp { width: 100%; background: #25d366; color: white; padding: 15px; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 20px; text-decoration: none; }
+        .btn-whatsapp:hover { background: #1eb854; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🛞 Llantera Móvil 24/7</h1>
+    <p class="sub">Solicita tu servicio en donde estés</p>
+
+    <div class="form-group">
+        <label for="servicio">Tipo de Servicio:</label>
+        <select id="servicio">
+            <option value="Cambio de Llanta de Refacción">Cambio de Llanta de Refacción</option>
+            <option value="Reparación de Ponchadura / Parche">Reparación de Ponchadura / Parche</option>
+            <option value="Aire / Calibración de Llantas">Aire / Calibración de Llantas</option>
+            <option value="Venta e Instalación de Llanta">Venta e Instalación de Llanta</option>
+            <option value="Otro Servicio">Otro / Consulta rápida</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="vehiculo">Tipo de Vehículo:</label>
+        <select id="vehiculo">
+            <option value="Carro pequeño">Carro pequeño</option>
+            <option value="Camioneta">Camioneta</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="nombre">Tu Nombre:</label>
+        <input type="text" id="nombre" placeholder="Ej. Juan Pérez">
+    </div>
+
+    <div class="form-group">
+        <label for="ubicacion">Ubicación / Referencia:</label>
+        <input type="text" id="ubicacion" placeholder="Escribe tu referencia o usa el botón">
+        <button type="button" id="btnGPS" class="btn-gps" onclick="obtenerUbicacionGPS()">📍 Detectar mi ubicación GPS actual</button>
+    </div>
+
+    <button type="button" class="btn-whatsapp" onclick="enviarWhatsApp()">
+        📲 Solicitar Llantera por WhatsApp
+    </button>
+</div>
+
+<script>
+    function obtenerUbicacionGPS() {
+        const inputUbicacion = document.getElementById('ubicacion');
+        const botonGPS = document.getElementById('btnGPS');
+
+        if ("geolocation" in navigator) {
+            botonGPS.innerText = "⏳ Obteniendo ubicación...";
+            botonGPS.disabled = true;
+
+            navigator.geolocation.getCurrentPosition(
+                function(posicion) {
+                    const lat = posicion.coords.latitude;
+                    const lon = posicion.coords.longitude;
+                    
+                    // Asigna el enlace corto directo de Google Maps
+                    inputUbicacion.value = `https://maps.google.com/?q=${lat},${lon}`;
+                    
+                    botonGPS.innerText = "✅ Ubicación agregada con éxito";
+                    botonGPS.disabled = false;
+                },
+                function(error) {
+                    botonGPS.disabled = false;
+                    botonGPS.innerText = "📍 Reintentar detectar GPS";
+                    
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            alert("Permiso denegado. Por favor permite el acceso a la ubicación en tu navegador o escribe una referencia manual.");
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            alert("La información de ubicación no está disponible.");
+                            break;
+                        case error.TIMEOUT:
+                            alert("La solicitud para obtener la ubicación expiró. Intenta de nuevo.");
+                            break;
+                        default:
+                            alert("Ocurrió un error al obtener la ubicación.");
+                            break;
+                    }
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        } else {
+            alert("Tu navegador o dispositivo no soporta la geolocalización.");
+        }
+    }
+
+    function enviarWhatsApp() {
+        const telefonoEmpresa = "526643940944"; 
+        
+        const servicio = document.getElementById('servicio').value;
+        const vehiculo = document.getElementById('vehiculo').value;
+        const nombre = document.getElementById('nombre').value || "Cliente";
+        const ubicacion = document.getElementById('ubicacion').value || "No especificada";
+
+        const mensaje = `Hola, necesito servicio de Llantera Móvil %0A%0A` +
+                        `👤 *Nombre:* ${nombre}%0A` +
+                        `🛠️ *Servicio:* ${servicio}%0A` +
+                        `🚗 *Vehículo:* ${vehiculo}%0A` +
+                        `📍 *Ubicación/Mapa:* ${ubicacion}%0A%0A` +
+                        `¿Me pueden cotizar y confirmar disponibilidad?`;
+
+        window.open(`https://wa.me/${telefonoEmpresa}?text=${mensaje}`, '_blank');
+    }
+</script>
+
+</body>
+</html>
