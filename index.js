@@ -1,7 +1,7 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 
-// Configuración de Puppeteer optimizada para servidores y uso local
+// Configuración del cliente
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
@@ -19,39 +19,90 @@ const client = new Client({
     }
 });
 
-// Generar código QR en la terminal
 client.on('qr', (qr) => {
     console.log('Escanea este código QR con WhatsApp:');
     qrcode.generate(qr, { small: true });
 });
 
-// Confirmación de conexión exitosa
 client.on('ready', () => {
-    console.log('✅ ¡El bot está en línea y conectado con éxito!');
+    console.log('✅ ¡El bot está en línea y con todos los comandos listos!');
 });
 
-// Evento al recibir mensajes
 client.on('message', async (message) => {
     const body = message.body.trim();
-    if (!body.startsWith('!')) return; // Ignorar si no empieza con "!"
+    const chat = await message.getChat();
+
+    // --- 1. CREAR STICKERS (!s o !sticker) ---
+    if (body.startsWith('!s') || body.startsWith('!sticker')) {
+        let targetMessage = message;
+
+        if (message.hasQuotedMsg) {
+            targetMessage = await message.getQuotedMessage();
+        }
+
+        if (targetMessage.hasMedia) {
+            try {
+                const media = await targetMessage.downloadMedia();
+                const args = body.split(' ').slice(1).join(' ');
+                let stickerName = 'Bot de WhatsApp';
+                let stickerAuthor = 'Javier la cabra';
+
+                if (args.includes('|')) {
+                    const parts = args.split('|');
+                    stickerName = parts[0].trim() || stickerName;
+                    stickerAuthor = parts[1].trim() || stickerAuthor;
+                } else if (args.length > 0) {
+                    stickerName = args;
+                }
+
+                await message.reply(media, message.from, {
+                    sendMediaAsSticker: true,
+                    stickerName: stickerName,
+                    stickerAuthor: stickerAuthor
+                });
+            } catch (err) {
+                console.error(err);
+                await message.reply('❌ Ocurrió un error al intentar crear el sticker.');
+            }
+        } else {
+            await message.reply('⚠️ Adjunta una foto/video o responde a una con `!s` para hacer un sticker.');
+        }
+        return;
+    }
+
+    if (!body.startsWith('!')) return;
 
     const args = body.slice(1).trim().split(/ +/);
     const command = args.shift().toLowerCase();
-    const chat = await message.getChat();
 
-    // Comprobación de si el mensaje proviene de un grupo
-    if (!chat.isGroup) {
-        if (['kick', 'mute', 'unmute'].includes(command)) {
-            await message.reply('❌ Este comando solo funciona dentro de grupos.');
-            return;
+    // Comprobación de grupo para comandos grupales
+    if (!chat.isGroup && ['kick', 'mute', 'unmute', 'todos', 'hidetag', 'n'].includes(command)) {
+        await message.reply('❌ Este comando solo funciona dentro de grupos.');
+        return;
+    }
+
+    // --- 2. NOTIFICAR A TODOS OCULTO (!n <texto>, !todos <texto> o !hidetag <texto>) ---
+    if (command === 'n' || command === 'todos' || command === 'hidetag') {
+        try {
+            const textNotice = args.join(' ') || '📢 *Aviso general*';
+            let mentions = [];
+
+            // Añadimos a todos los participantes a la lista oculta de menciones
+            for (let participant of chat.participants) {
+                mentions.push(participant.id._serialized);
+            }
+
+            // Enviamos el mensaje en limpio con las menciones por detrás
+            await chat.sendMessage(textNotice, { mentions });
+        } catch (err) {
+            console.error(err);
+            await message.reply('❌ Ocurrió un error al intentar notificar a los miembros.');
         }
     }
 
-    // --- COMANDO !kick (Expulsar usuario) ---
-    if (command === 'kick') {
-        // Verificar si se mencionó a alguien o se respondió a un mensaje
+    // --- 3. EXPULSAR USUARIO (!kick) ---
+    else if (command === 'kick') {
         let userToKick;
-        
         if (message.mentionedJidList.length > 0) {
             userToKick = message.mentionedJidList[0];
         } else if (message.hasQuotedMsg) {
@@ -60,42 +111,39 @@ client.on('message', async (message) => {
         }
 
         if (!userToKick) {
-            await message.reply('⚠️ Etiqueta a alguien o responde a su mensaje para expulsarlo. Ejemplo: !kick @usuario');
+            await message.reply('⚠️ Etiqueta a alguien o responde a su mensaje para expulsarlo. Ejemplo: `!kick @usuario`');
             return;
         }
 
         try {
             await chat.removeParticipants([userToKick]);
-            await message.reply('✅ Usuario expulsado con éxito del grupo.');
+            await message.reply('✅ Usuario expulsado.');
         } catch (err) {
-            console.error(err);
             await message.reply('❌ Error al expulsar. Asegúrate de que el bot sea ADMINISTRADOR del grupo.');
         }
     }
 
-    // --- COMANDO !mute (Solo admins pueden escribir) ---
+    // --- 4. CERRAR CHAT (!mute) ---
     else if (command === 'mute') {
         try {
             await chat.setMessagesAdminsOnly(true);
             await message.reply('🔒 El grupo ha sido cerrado. Solo los administradores pueden enviar mensajes.');
         } catch (err) {
-            console.error(err);
-            await message.reply('❌ Error al cerrar el grupo. Asegúrate de que el bot sea ADMINISTRADOR.');
+            await message.reply('❌ Error al cerrar el grupo. El bot debe ser ADMINISTRADOR.');
         }
     }
 
-    // --- COMANDO !unmute (Todos los miembros pueden escribir) ---
+    // --- 5. ABRIR CHAT (!unmute) ---
     else if (command === 'unmute') {
         try {
             await chat.setMessagesAdminsOnly(false);
             await message.reply('🔓 El grupo ha sido abierto. Todos los miembros pueden escribir.');
         } catch (err) {
-            console.error(err);
-            await message.reply('❌ Error al abrir el grupo. Asegúrate de que el bot sea ADMINISTRADOR.');
+            await message.reply('❌ Error al abrir el grupo. El bot debe ser ADMINISTRADOR.');
         }
     }
 
-    // --- COMANDOS BÁSICOS ---
+    // --- 6. COMANDOS EXTRA ---
     else if (command === 'ping') {
         await message.reply('¡Pong! El bot está en línea y activo.');
     } else if (command === 'creador') {
@@ -103,7 +151,6 @@ client.on('message', async (message) => {
     }
 });
 
-// Inicialización del cliente
 client.initialize().catch(err => {
     console.error('❌ Error al inicializar el cliente:', err.message);
 });
