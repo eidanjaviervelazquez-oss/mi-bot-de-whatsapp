@@ -1,12 +1,10 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 
-// Detección automática del ejecutable de Puppeteer para Render y Linux
 const client = new Client({
-    authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
+    authStrategy: new LocalAuth(),
     puppeteer: {
         headless: true,
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -20,139 +18,125 @@ const client = new Client({
     }
 });
 
-// Mostrar código QR en los logs de Render
+// Evento cuando se genera el código QR (se mostrará en los logs de Render)
 client.on('qr', (qr) => {
-    console.log('--- ESCANEA ESTE CÓDIGO QR CON WHATSAPP ---');
+    console.log('Escanea este código QR desde tu WhatsApp:');
     qrcode.generate(qr, { small: true });
 });
 
-// Confirmación de conexión exitosa
+// Evento cuando el bot está listo y conectado
 client.on('ready', () => {
-    console.log('✅ ¡El bot está en línea y funcionando 24/7 en Render!');
+    console.log('--------------------------------------------------');
+    console.log('¡Bot activado y funcionando en Render correctamente!');
+    console.log('Creado por: Javier la cabra 🐐');
+    console.log('--------------------------------------------------');
 });
 
-// Manejo de mensajes
+// Escuchador de mensajes y comandos
 client.on('message', async (message) => {
-    const body = message.body.trim();
-    const chat = await message.getChat();
+    try {
+        const content = message.body ? message.body.trim() : '';
+        const chat = await message.getChat();
 
-    // --- COMANDO !s / !sticker (Crear Stickers con Título y Creador) ---
-    if (body.startsWith('!s') || body.startsWith('!sticker')) {
-        let targetMessage = message;
-
-        if (message.hasQuotedMsg) {
-            targetMessage = await message.getQuotedMessage();
+        // 1. Comando !creditos
+        if (content.toLowerCase() === '!creditos') {
+            await message.reply('🤖 Bot creado por: Javier la cabra 🐐');
         }
 
-        if (targetMessage.hasMedia) {
-            try {
-                const media = await targetMessage.downloadMedia();
-                const args = body.split(' ').slice(1).join(' ');
-                let stickerName = 'Bot de WhatsApp';
-                let stickerAuthor = 'Javier la cabra';
+        // 2. Comando !n (Mencionar a todos sin mostrar el @número)
+        if (content.startsWith('!n ')) {
+            if (!chat.isGroup) return message.reply('Este comando solo funciona en grupos.');
+            
+            const textToAnnounce = content.slice(3).trim();
+            if (!textToAnnounce) return message.reply('Escribe el mensaje después del !n (Ejemplo: !n Hola a todos)');
 
-                if (args.includes('|')) {
-                    const parts = args.split('|');
-                    stickerName = parts[0].trim() || stickerName;
-                    stickerAuthor = parts[1].trim() || stickerAuthor;
-                } else if (args.length > 0) {
-                    stickerName = args;
-                }
-
-                await message.reply(media, message.from, {
-                    sendMediaAsSticker: true,
-                    stickerName: stickerName,
-                    stickerAuthor: stickerAuthor
-                });
-            } catch (err) {
-                console.error('Error al crear sticker:', err);
-                await message.reply('❌ Ocurrió un error al procesar la imagen.');
-            }
-        } else {
-            await message.reply('⚠️ Envía una imagen/video con `!s` o responde a uno con `!s`.');
-        }
-        return;
-    }
-
-    if (!body.startsWith('!')) return;
-
-    const args = body.slice(1).trim().split(/ +/);
-    const command = args.shift().toLowerCase();
-
-    // Verificación de comandos grupales
-    if (!chat.isGroup && ['kick', 'mute', 'unmute', 'todos', 'hidetag', 'n'].includes(command)) {
-        await message.reply('❌ Este comando solo funciona dentro de grupos.');
-        return;
-    }
-
-    // --- COMANDOS !n, !todos, !hidetag (Mención oculta) ---
-    if (['n', 'todos', 'hidetag'].includes(command)) {
-        try {
-            const textNotice = args.join(' ') || '📢 *Aviso general*';
             let mentions = [];
-
             for (let participant of chat.participants) {
-                mentions.push(participant.id._serialized);
+                const contact = await client.getContactById(participant.id._serialized);
+                mentions.push(contact);
             }
 
-            await chat.sendMessage(textNotice, { mentions });
-        } catch (err) {
-            console.error('Error en mención oculta:', err);
-            await message.reply('❌ No se pudo notificar a los miembros.');
-        }
-    }
-
-    // --- COMANDO !kick (Expulsar usuario) ---
-    else if (command === 'kick') {
-        let userToKick;
-        if (message.mentionedJidList.length > 0) {
-            userToKick = message.mentionedJidList[0];
-        } else if (message.hasQuotedMsg) {
-            const quotedMsg = await message.getQuotedMessage();
-            userToKick = quotedMsg.author || quotedMsg.from;
+            await chat.sendMessage(textToAnnounce, { mentions });
         }
 
-        if (!userToKick) {
-            await message.reply('⚠️ Etiqueta a alguien o responde a su mensaje. Ejemplo: `!kick @usuario`');
-            return;
+        // 3. Comando !s / !sticker / !steal (Robar o convertir sticker con tu marca)
+        if (content.toLowerCase() === '!sticker' || content.toLowerCase() === '!s' || content.toLowerCase().startsWith('!steal')) {
+            let targetMessage = message;
+            
+            if (message.hasQuotedMsg) {
+                targetMessage = await message.getQuotedMessage();
+            }
+
+            if (targetMessage.hasMedia) {
+                const media = await targetMessage.downloadMedia();
+                if (media) {
+                    await client.sendMessage(message.from, media, {
+                        sendMediaAsSticker: true,
+                        stickerName: 'Javier la cabra 🐐',
+                        stickerAuthor: 'Javier la cabra 🐐'
+                    });
+                }
+            } else {
+                await message.reply('Responde a una imagen o sticker con el comando !s para ponerle tu marca.');
+            }
         }
 
-        try {
-            await chat.removeParticipants([userToKick]);
-            await message.reply('✅ Usuario expulsado.');
-        } catch (err) {
-            await message.reply('❌ Error al expulsar. Verifica que el bot sea ADMINISTRADOR.');
-        }
-    }
-
-    // --- COMANDO !mute (Cerrar grupo) ---
-    else if (command === 'mute') {
-        try {
+        // 4. Comandos !mute y !unmute
+        if (content.toLowerCase() === '!mute') {
+            if (!chat.isGroup) return message.reply('Este comando solo funciona en grupos.');
             await chat.setMessagesAdminsOnly(true);
-            await message.reply('🔒 Grupo cerrado. Solo los administradores pueden escribir.');
-        } catch (err) {
-            await message.reply('❌ Error al cerrar el grupo. El bot debe ser ADMINISTRADOR.');
+            await message.reply('🔒 Grupo silenciado. Solo los administradores pueden enviar mensajes.');
         }
-    }
 
-    // --- COMANDO !unmute (Abrir grupo) ---
-    else if (command === 'unmute') {
-        try {
+        if (content.toLowerCase() === '!unmute') {
+            if (!chat.isGroup) return message.reply('Este comando solo funciona en grupos.');
             await chat.setMessagesAdminsOnly(false);
-            await message.reply('🔓 Grupo abierto. Todos los miembros pueden escribir.');
-        } catch (err) {
-            await message.reply('❌ Error al abrir el grupo. El bot debe ser ADMINISTRADOR.');
+            await message.reply('🔓 Grupo desmutado. Todos los miembros pueden hablar.');
         }
-    }
 
-    // --- COMANDOS EXTRA ---
-    else if (command === 'ping') {
-        await message.reply('¡Pong! El bot está en línea.');
-    } else if (command === 'creador') {
-        await message.reply('Bot desarrollado por *Javier la cabra*.');
+        // 5. Comando !fantasmas (Detectar inactivos)
+        if (content.toLowerCase() === '!fantasmas') {
+            if (!chat.isGroup) return message.reply('Este comando solo funciona en grupos.');
+            
+            const messages = await chat.fetchMessages({ limit: 100 });
+            const activeUsers = new Set(messages.map(m => m.author || m.from));
+            
+            let ghosts = [];
+            for (let participant of chat.participants) {
+                if (!activeUsers.has(participant.id._serialized)) {
+                    ghosts.push(`@${participant.id.user}`);
+                }
+            }
+
+            if (ghosts.length === 0) {
+                await message.reply('👻 No se encontraron fantasmas en los últimos 100 mensajes.');
+            } else {
+                let replyText = `👻 *Fantasmas detectados (${ghosts.length}):*\n\n` + ghosts.join('\n');
+                await message.reply(replyText);
+            }
+        }
+
+        // 6. Comando !kickall (Modo emergencia: Expulsar a todos los no-admins)
+        if (content.toLowerCase() === '!kickall') {
+            if (!chat.isGroup) return message.reply('Este comando solo funciona en grupos.');
+            
+            await message.reply('⚠️ Iniciando protocolo de emergencia: Expulsando a todos los miembros...');
+            
+            for (let participant of chat.participants) {
+                if (!participant.isAdmin && !participant.isSuperAdmin) {
+                    try {
+                        await chat.removeParticipants([participant.id._serialized]);
+                    } catch (err) {
+                        console.log(`No se pudo expulsar a ${participant.id.user}:`, err.message);
+                    }
+                }
+            }
+            await message.reply('✅ Limpieza completada por: Javier la cabra 🐐');
+        }
+
+    } catch (error) {
+        console.error('Error procesando mensaje:', error);
     }
 });
 
-client.initialize().catch(err => {
-    console.error('❌ Error crítico al inicializar WhatsApp Web:', err);
-});
+client.initialize();
