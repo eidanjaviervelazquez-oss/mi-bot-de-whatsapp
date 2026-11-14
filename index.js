@@ -341,6 +341,29 @@ async function conectarBot() {
                 await sock.sendMessage(remoteJid, { text: textoReglas });
                 break;
 
+            case 'n':
+                if (!esGrupo) return;
+                try {
+                    const mensajeAviso = args.join(' ');
+                    if (!mensajeAviso) {
+                        await sock.sendMessage(remoteJid, { text: "⚠️ Escribe el mensaje del aviso. Ejemplo: `!n Reunión hoy a las 8 PM`" });
+                        return;
+                    }
+
+                    const metadata = await sock.groupMetadata(remoteJid);
+                    const participantes = metadata.participants.map(p => p.id);
+
+                    const textoAnuncio = 
+                        `🚨 *AVISO GENERAL DEL CLAN* 🚨\n\n\n\n` +
+                        `${mensajeAviso}\n\n\n\n` +
+                        `_Enviado por: @${sender.split('@')[0]}_ 🐀`;
+
+                    await sock.sendMessage(remoteJid, { text: textoAnuncio, mentions: participantes });
+                } catch (e) {
+                    await sock.sendMessage(remoteJid, { text: "❌ Error al enviar el aviso general." });
+                }
+                break;
+
             case 'anclar':
             case 'fijo':
                 if (!esGrupo) return;
