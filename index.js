@@ -1,3 +1,16 @@
+const express = require('express');
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+  res.send('JR Bot está activo y funcionando en la nube!');
+});
+
+// Configurado con '0.0.0.0' para que Render detecte el puerto sin errores
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor web activo en el puerto ${PORT}`);
+});
+
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, downloadContentFromMessage } = require('@whiskeysockets/baileys');
 const { Sticker } = require('wa-sticker-formatter');
 const qrcode = require('qrcode');
@@ -651,192 +664,10 @@ async function conectarBot() {
                     }
                 } else {
                     await sock.sendMessage(remoteJid, { 
-                        text: `🔫 *RULETA RUSA* 🔫\n\n\n\n👤 @${sender.split('@')[0]} jaló del gatillo...\n\n\n\n💨 *Click.* Te salvaste esta vez, el arma estaba vacía.`, 
+                        text: `🔫 *RULETA RUSA* 🔫\n\n\n\n👤 @${sender.split('@')[0]} jaló del gatillo...\n\n\n\n💨 *Click.* Te salvaste esta vez.`, 
                         mentions: [sender] 
                     });
                 }
-                break;
-
-            case 'futuro':
-                if (args.length === 0) {
-                    await sock.sendMessage(remoteJid, { text: "⚠️ Dime a quién le leo el futuro. Ejemplo: `!futuro Luis` o `!futuro @usuario`" });
-                    return;
-                }
-                const objetivoFuturo = args.join(' ');
-                const predicciones = [
-                    "terminará vendiendo gelatinas afuera del OXXO por manco.",
-                    "será acarreado hasta Gran Maestro y luego le banearán la cuenta.",
-                    "se casará con una 'Gamer Girl' que en realidad será un señor de 40 años.",
-                    "ganará un torneo, pero se gastará todo el premio en pases élite."
-                ];
-                const prediccionElegida = predicciones[Math.floor(Math.random() * predicciones.length)];
-                const anioFuturo = new Date().getFullYear() + Math.floor(Math.random() * 10) + 1;
-                
-                await sock.sendMessage(remoteJid, { 
-                    text: `🔮 *LA BOLA DE CRISTAL DE JR BOT* 🔮\n\n\n\nEn el año ${anioFuturo}, *${objetivoFuturo}* ${prediccionElegida}` 
-                });
-                break;
-
-            case 'casar':
-            case 'pareja':
-                if (args.length < 2) {
-                    await sock.sendMessage(remoteJid, { text: "⚠️ Necesitas nombrar a dos personas. Ejemplo: `!casar Kevin Rafa`" });
-                    return;
-                }
-                const persona1 = args[0];
-                const persona2 = args.slice(1).join(' ');
-
-                await sock.sendMessage(remoteJid, { 
-                    text: `💒 *BODA EN EL CLAN SIMIOX'9* 💒\n\n\n\n👰 *${persona1}* y *${persona2}* han quedado oficialmente unidos en sagrado matrimonio.\n\n\n\n🎂 *Padrinos de boda:* JR BOT y Javier.\n\n\n\n🎉 ¡Que vivan los novios! 🐀`
-                });
-                break;
-
-            case 'rayo':
-                if (!esGrupo) return;
-                let targetRayo = m.message.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
-                let nombreRayo = targetRayo ? `@${targetRayo.split('@')[0]}` : args.join(' ');
-                
-                if (!nombreRayo) {
-                    await sock.sendMessage(remoteJid, { text: "⚠️ Especifica a quién lanzar el rayo." });
-                    return;
-                }
-
-                if (targetRayo && esNumeroDelDueno(targetRayo.replace(/[^0-9]/g, ''))) {
-                    await sock.sendMessage(remoteJid, { text: "no puedes usar este comando con el creador del bot" });
-                    return;
-                }
-
-                await sock.sendMessage(remoteJid, { 
-                    text: `🌩️ *SANCIÓN ADVERTIDA* 🌩️\n\n\n\n👤 Objetivo: *${nombreRayo}*\n\n\n\n⚠️ Ha recibido una descarga por desobediencia en el grupo. La próxima sanción será expulsión directa.`,
-                    mentions: targetRayo ? [targetRayo] : []
-                });
-                break;
-
-            case 'n':
-                if (!esGrupo) return;
-                try {
-                    const metadata = await sock.groupMetadata(remoteJid);
-                    const participantes = metadata.participants.map(p => p.id);
-                    const textoCustom = args.join(' ') || "Atención a todos.";
-                    const mensajeFinal = `JR BOT 🤖 🐭\n\n\n\n${textoCustom}`;
-                    await sock.sendMessage(remoteJid, { text: `${mensajeFinal}\n\n‎`, mentions: participantes });
-                } catch (e) {
-                    await sock.sendMessage(remoteJid, { text: "❌ Error: El bot no tiene permisos o ya no forma parte del grupo." });
-                }
-                break;
-
-            case 'kick':
-                if (!esGrupo) return;
-                try {
-                    let usuarioAExpulsar = m.message.extendedTextMessage?.contextInfo?.mentionedJid?.[0] || m.message.extendedTextMessage?.contextInfo?.participant;
-                    if (!usuarioAExpulsar) {
-                        await sock.sendMessage(remoteJid, { text: "⚠️ Formato: `!kick @usuario razón: (tu texto)`" });
-                        return;
-                    }
-
-                    const textoArgsCompleto = args.join(' ');
-                    const indexRazon = textoArgsCompleto.toLowerCase().indexOf('razón:');
-                    let razon = "Sin razón especificada";
-                    if (indexRazon !== -1) {
-                        razon = textoArgsCompleto.substring(indexRazon + 6).trim();
-                    }
-
-                    await sock.groupParticipantsUpdate(remoteJid, [usuarioAExpulsar], "remove");
-                    const insultoAleatorio = insultosDespedida[Math.floor(Math.random() * insultosDespedida.length)];
-                    await sock.sendMessage(remoteJid, { 
-                        text: `⚠️ *@${usuarioAExpulsar.split('@')[0]} ha sido expulsado.*\n\n\n\n📌 *Razón:* ${razon}\n\n\n\n${insultoAleatorio} 🐀💨`, 
-                        mentions: [usuarioAExpulsar] 
-                    });
-                } catch (e) {
-                    await sock.sendMessage(remoteJid, { text: "❌ Error: El bot necesita permisos de Administrador." });
-                }
-                break;
-
-            case 'kickall':
-                if (!esGrupo) return;
-                try {
-                    const metadata = await sock.groupMetadata(remoteJid);
-                    const toRemove = metadata.participants
-                        .filter(p => !p.admin && p.id !== sock.user.id && !esNumeroDelDueno(p.id))
-                        .map(p => p.id);
-                    
-                    if (toRemove.length === 0) {
-                        await sock.sendMessage(remoteJid, { text: "⚠️ No hay miembros sin rango para expulsar." });
-                        return;
-                    }
-
-                    await sock.groupParticipantsUpdate(remoteJid, toRemove, "remove");
-                    await sock.sendMessage(remoteJid, { text: `⚠️ Limpieza completa. Se expulsaron ${toRemove.length} usuarios.` });
-                } catch (e) {
-                    await sock.sendMessage(remoteJid, { text: "❌ Error en kickall. Verifica permisos de Administrador." });
-                }
-                break;
-
-            case 'mute':
-                if (!esGrupo) return;
-                try {
-                    let usuarioMute = m.message.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
-                    if (!usuarioMute) {
-                        await sock.sendMessage(remoteJid, { text: "⚠️ Usa !mute @usuario (opcional: tiempo: 5 minutos)" });
-                        return;
-                    }
-
-                    const numMute = usuarioMute.replace(/[^0-9]/g, '');
-
-                    if (!usuariosMuteados.has(remoteJid)) {
-                        usuariosMuteados.set(remoteJid, new Set());
-                    }
-                    usuariosMuteados.get(remoteJid).add(usuarioMute);
-                    usuariosMuteados.get(remoteJid).add(numMute);
-
-                    const textoArgsMute = args.join(' ');
-                    const indexTiempo = textoArgsMute.toLowerCase().indexOf('tiempo:');
-                    let msTiempo = null;
-                    let textoInfoTiempo = "indefinidamente (hasta que un admin use !unmute).";
-
-                    if (indexTiempo !== -1) {
-                        const strTiempo = textoArgsMute.substring(indexTiempo + 7).trim();
-                        msTiempo = parsearTiempoAMs(strTiempo);
-                        if (msTiempo) {
-                            textoInfoTiempo = `durante ${strTiempo}.`;
-                        }
-                    }
-
-                    await sock.sendMessage(remoteJid, { 
-                        text: `🔇 Usuario @${usuarioMute.split('@')[0]} ha sido silenciado ${textoInfoTiempo}`, 
-                        mentions: [usuarioMute] 
-                    });
-
-                    if (msTiempo) {
-                        setTimeout(() => {
-                            if (usuariosMuteados.has(remoteJid)) {
-                                usuariosMuteados.get(remoteJid).delete(usuarioMute);
-                                usuariosMuteados.get(remoteJid).delete(numMute);
-                            }
-                        }, msTiempo);
-                    }
-                } catch (e) {}
-                break;
-
-            case 'unmute':
-                if (!esGrupo) return;
-                try {
-                    let usuarioUnmute = m.message.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
-                    if (!usuarioUnmute) {
-                        await sock.sendMessage(remoteJid, { text: "⚠️ Usa !unmute @usuario para perdonarlo." });
-                        return;
-                    }
-
-                    if (usuariosMuteados.has(remoteJid))	 {
-                        usuariosMuteados.get(remoteJid).delete(usuarioUnmute);
-                        usuariosMuteados.get(remoteJid).delete(usuarioUnmute.replace(/[^0-9]/g, ''));
-                    }
-
-                    await sock.sendMessage(remoteJid, { 
-                        text: `🔊 Usuario @${usuarioUnmute.split('@')[0]} desmuteado.`, 
-                        mentions: [usuarioUnmute] 
-                    });
-                } catch (e) {}
                 break;
         }
     });
